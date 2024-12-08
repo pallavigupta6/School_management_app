@@ -1,8 +1,7 @@
-
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Users, GraduationCap, School, TrendingUp } from "lucide-react";
+import { baseurl } from "../../baseurl/baseurl";
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
   <div className="bg-white rounded-lg shadow p-6">
@@ -34,7 +33,7 @@ const Analytics = () => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const url = new URL("http://localhost:3000/api/analytics");
+        const url = new URL(baseurl + "/api/analytics");
         const params = {
           viewType: "yearly",
           year: 2024,
