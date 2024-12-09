@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect } from "react";
 import Table from "../custom/Table";
 import axios from "axios";
@@ -15,7 +17,6 @@ const StudentManagement = () => {
     "Fees History",
     "Actions",
   ];
-
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,7 +24,6 @@ const StudentManagement = () => {
   const [editMode, setEditMode] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [classOptions, setClassOptions] = useState([]);
-  const [formErrors, setFormErrors] = useState({});
 
   const [studentForm, setStudentForm] = useState({
     name: "",
@@ -36,21 +36,8 @@ const StudentManagement = () => {
     feesHistory: [{ amount: 0, date: "", semester: "" }],
   });
 
-  const validateForm = () => {
-    const errors = {};
-    if (!studentForm.name.trim()) errors.name = "Name is required.";
-    if (!studentForm.gender) errors.gender = "Gender is required.";
-    if (!studentForm.dateOfBirth)
-      errors.dateOfBirth = "Date of Birth is required.";
-    if (!studentForm.email.trim() || !/^\S+@\S+\.\S+$/.test(studentForm.email))
-      errors.email = "Valid email is required.";
-    // if (!studentForm.phone.trim() || !/^\d{10}$/.test(studentForm.phone))
-    //   errors.phone = "Valid phone number is required.";
-    if (!studentForm.class) errors.class = "Class selection is required.";
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
+  
+  // Fetch Students from Backend
   const fetchStudents = async () => {
     try {
       setIsLoading(true);
@@ -59,6 +46,7 @@ const StudentManagement = () => {
         id: student._id,
         Name: student.name,
         Gender: student.gender,
+        // "Date of Birth": new Date(student.dateOfBirth).toLocaleDateString(),
         "Date of Birth": student.dateOfBirth,
         Email: student.email,
         Phone: student.phone,
@@ -81,6 +69,7 @@ const StudentManagement = () => {
     }
   };
 
+  // Fetch Class Options
   const fetchClassOptions = async () => {
     try {
       const response = await axios.get(`${baseurl}/api/classes`);
@@ -95,6 +84,8 @@ const StudentManagement = () => {
     fetchClassOptions();
   }, []);
 
+  // Handle Form Input Changes
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setStudentForm((prev) => ({
@@ -103,33 +94,66 @@ const StudentManagement = () => {
     }));
   };
 
+  // Handle Fees History Changes
+  const handleFeesHistoryChange = (index, field, value) => {
+    const updatedFeesHistory = [...studentForm.feesHistory];
+    updatedFeesHistory[index][field] =
+      field === "amount" ? Number(value) : value;
+    setStudentForm((prev) => ({ ...prev, feesHistory: updatedFeesHistory }));
+  };
+
+  // Add Fee Record
+  const addFeeRecord = () => {
+    setStudentForm((prev) => ({
+      ...prev,
+      feesHistory: [...prev.feesHistory, { amount: 0, date: "", semester: "" }],
+    }));
+  };
+
+  // Handle Add or Update Student Submission
   const handleSaveStudent = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
     const payload = {
       ...studentForm,
-      dateOfBirth: studentForm.dateOfBirth
+      dateOfBirth: studentForm?.dateOfBirth
         ? new Date(studentForm.dateOfBirth).toISOString()
         : undefined,
-      feesHistory: studentForm.feesHistory || [],
+      feesHistory: studentForm?.feesHistory || [],
     };
+    console.log("Prepared payload:", payload);
+
     try {
       if (editMode) {
+        console.log("Editing student with ID:", selectedStudentId);
         await axios.put(
           `${baseurl}/api/students/${selectedStudentId}`,
           payload
         );
       } else {
+        console.log("Adding new student:", payload);
         await axios.post(`${baseurl}/api/students`, payload);
       }
       setPopupOpen(false);
       fetchStudents();
     } catch (error) {
-      console.error("Error saving student:", error);
+      console.error(
+        "Error saving student:",
+        error.response || error.message || error
+      );
     }
   };
 
+  // Handle Delete Student
+  const handleDeleteStudent = async (studentId) => {
+    try {
+      await axios.delete(`${baseurl}/api/students/${studentId}`);
+      fetchStudents();
+    } catch (error) {
+      console.error("Error deleting student:", error);
+    }
+  };
+
+  // Handle Edit Student
   const handleEditStudent = (studentId) => {
     const studentToEdit = data.find((item) => item.id === studentId);
     setStudentForm({
@@ -151,6 +175,7 @@ const StudentManagement = () => {
     setPopupOpen(true);
   };
 
+  // Toggle Popup
   const togglePopup = () => {
     if (isPopupOpen) {
       setStudentForm({
@@ -163,7 +188,6 @@ const StudentManagement = () => {
         feesPaid: 0,
         feesHistory: [{ amount: 0, date: "", semester: "" }],
       });
-      setFormErrors({});
       setEditMode(false);
       setSelectedStudentId(null);
     }
@@ -171,13 +195,12 @@ const StudentManagement = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Student Management
-      </h1>
-      <div className="flex justify-between mb-6">
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Student Management</h1>
+
+      <div className="flex justify-between mb-4">
         <button
-          className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-600 transition"
+          className="bg-green-500 text-white px-4 py-2 rounded"
           onClick={togglePopup}
         >
           Add Student
@@ -185,24 +208,24 @@ const StudentManagement = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center text-gray-500">Loading...</div>
+        <div>Loading...</div>
       ) : error ? (
-        <div className="text-center text-red-500">{error}</div>
+        <div className="text-red-500">{error}</div>
       ) : (
         <Table
           columns={columns}
           data={data.map((student) => ({
             ...student,
             Actions: (
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <button
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 transition"
+                  className="bg-blue-500 text-white px-2 py-1 rounded"
                   onClick={() => handleEditStudent(student.id)}
                 >
                   Edit
                 </button>
                 <button
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600 transition"
+                  className="bg-red-500 text-white px-2 py-1 rounded"
                   onClick={() => handleDeleteStudent(student.id)}
                 >
                   Delete
@@ -215,37 +238,31 @@ const StudentManagement = () => {
 
       {isPopupOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-8 rounded-lg shadow-xl w-96">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+          <div className="bg-white p-6 rounded-md w-96">
+            <h2 className="text-xl font-bold mb-4">
               {editMode ? "Edit Student" : "Add New Student"}
             </h2>
+
             <form onSubmit={handleSaveStudent}>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Name
-                </label>
+                <label className="block text-gray-700">Name</label>
                 <input
                   type="text"
                   name="name"
                   value={studentForm.name}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   placeholder="Student Name"
                   required
                 />
-                {formErrors.name && (
-                  <p className="text-red-500 text-sm">{formErrors.name}</p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Gender
-                </label>
+                <label className="block text-gray-700">Gender</label>
                 <select
                   name="gender"
                   value={studentForm.gender}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   required
                 >
                   <option value="">Select Gender</option>
@@ -253,71 +270,49 @@ const StudentManagement = () => {
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
-                {formErrors.gender && (
-                  <p className="text-red-500 text-sm">{formErrors.gender}</p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Date of Birth
-                </label>
+                <label className="block text-gray-700">Date of Birth</label>
                 <input
                   type="date"
                   name="dateOfBirth"
                   value={studentForm.dateOfBirth}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   required
                 />
-                {formErrors.dateOfBirth && (
-                  <p className="text-red-500 text-sm">
-                    {formErrors.dateOfBirth}
-                  </p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Email
-                </label>
+                <label className="block text-gray-700">Email</label>
                 <input
                   type="email"
                   name="email"
                   value={studentForm.email}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   placeholder="Email Address"
                   required
                 />
-                {formErrors.email && (
-                  <p className="text-red-500 text-sm">{formErrors.email}</p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Phone
-                </label>
+                <label className="block text-gray-700">Phone</label>
                 <input
                   type="text"
                   name="phone"
                   value={studentForm.phone}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   placeholder="Phone Number"
                   required
                 />
-                {formErrors.phone && (
-                  <p className="text-red-500 text-sm">{formErrors.phone}</p>
-                )}
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 font-medium mb-2">
-                  Class
-                </label>
+                <label className="block text-gray-700">Class</label>
                 <select
                   name="class"
                   value={studentForm.class}
                   onChange={handleInputChange}
-                  className="border border-gray-300 p-3 w-full rounded-lg"
+                  className="border border-gray-300 p-2 w-full"
                   required
                 >
                   <option value="">Select Class</option>
@@ -327,23 +322,79 @@ const StudentManagement = () => {
                     </option>
                   ))}
                 </select>
-                {formErrors.class && (
-                  <p className="text-red-500 text-sm">{formErrors.class}</p>
-                )}
               </div>
-              <div className="mb-6 flex justify-end">
+              <div className="mb-4">
+                <label className="block text-gray-700">Fees Paid</label>
+                <input
+                  type="number"
+                  name="feesPaid"
+                  value={studentForm.feesPaid}
+                  onChange={handleInputChange}
+                  className="border border-gray-300 p-2 w-full"
+                  placeholder="Fees Paid"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Fees History</label>
+                {studentForm.feesHistory.map((fee, index) => (
+                  <div key={index} className="mb-2">
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={fee.amount}
+                      onChange={(e) =>
+                        handleFeesHistoryChange(index, "amount", e.target.value)
+                      }
+                      className="border border-gray-300 p-2 w-full mb-1"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={fee.date}
+                      onChange={(e) =>
+                        handleFeesHistoryChange(index, "date", e.target.value)
+                      }
+                      className="border border-gray-300 p-2 w-full mb-1"
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="Semester"
+                      value={fee.semester}
+                      onChange={(e) =>
+                        handleFeesHistoryChange(
+                          index,
+                          "semester",
+                          e.target.value
+                        )
+                      }
+                      className="border border-gray-300 p-2 w-full"
+                      required
+                    />
+                  </div>
+                ))}
                 <button
                   type="button"
-                  className="bg-gray-400 text-white px-4 py-2 rounded-lg mr-4"
+                  className="bg-blue-500 text-white px-2 py-1 rounded mt-2"
+                  onClick={addFeeRecord}
+                >
+                  Add Fee Record
+                </button>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="bg-red-500 text-white px-4 py-2 rounded mr-2"
                   onClick={togglePopup}
                 >
-                  Cancel
+                  Close
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition"
+                  className="bg-green-500 text-white px-4 py-2 rounded"
                 >
-                  {editMode ? "Save Changes" : "Add Student"}
+                  {editMode ? "Update" : "Add"}
                 </button>
               </div>
             </form>
