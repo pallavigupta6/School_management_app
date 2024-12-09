@@ -136,10 +136,6 @@ const StudentManagement = () => {
       ...studentForm,
       name: studentToEdit.Name,
       gender: studentToEdit.Gender,
-      //   dateOfBirth: new Date(studentToEdit["Date of Birth"])
-      // .toISOString()
-      // .split("T")[0],
-      //   dateOfBirth: studentToEdit.dateOfBirth,
       dateOfBirth: studentToEdit["Date of Birth"]
         ? new Date(studentToEdit["Date of Birth"]).toISOString().slice(0, -1)
         : "",
