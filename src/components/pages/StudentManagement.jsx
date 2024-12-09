@@ -44,8 +44,8 @@ const StudentManagement = () => {
       errors.dateOfBirth = "Date of Birth is required.";
     if (!studentForm.email.trim() || !/^\S+@\S+\.\S+$/.test(studentForm.email))
       errors.email = "Valid email is required.";
-    if (!studentForm.phone.trim() || !/^\d{10}$/.test(studentForm.phone))
-      errors.phone = "Valid phone number is required.";
+    // if (!studentForm.phone.trim() || !/^\d{10}$/.test(studentForm.phone))
+    //   errors.phone = "Valid phone number is required.";
     if (!studentForm.class) errors.class = "Class selection is required.";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
