@@ -130,6 +130,31 @@ const StudentManagement = () => {
     }
   };
 
+  const handleEditStudent = (studentId) => {
+    const studentToEdit = data.find((item) => item.id === studentId);
+    setStudentForm({
+      ...studentForm,
+      name: studentToEdit.Name,
+      gender: studentToEdit.Gender,
+      //   dateOfBirth: new Date(studentToEdit["Date of Birth"])
+      // .toISOString()
+      // .split("T")[0],
+      //   dateOfBirth: studentToEdit.dateOfBirth,
+      dateOfBirth: studentToEdit["Date of Birth"]
+        ? new Date(studentToEdit["Date of Birth"]).toISOString().slice(0, -1)
+        : "",
+      email: studentToEdit.Email,
+      phone: studentToEdit.Phone,
+      class:
+        classOptions.find((cls) => cls.name === studentToEdit.Class)?._id || "",
+      feesPaid: studentToEdit["Fees Paid"],
+      feesHistory: studentToEdit.feesHistory || [],
+    });
+    setSelectedStudentId(studentId);
+    setEditMode(true);
+    setPopupOpen(true);
+  };
+
   const togglePopup = () => {
     if (isPopupOpen) {
       setStudentForm({
